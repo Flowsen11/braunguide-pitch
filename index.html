@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BraunGuide – KI ohne Kauderwelsch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ════════════════════════════════════════════
+       DESIGN TOKENS
+    ════════════════════════════════════════════ */
+    :root {
+      /* Brand Colors */
+      --teal:    #0D6E72;
+      --teal-l:  #128A8F;
+      --teal-xl: #1AA8AE;
+      --amber:   #F0A500;
+      --amber-l: #F5B82E;
+      --dark:    #1A1A2E;
+      --dark2:   #0F0F1E;
+      --light:   #F8F9FA;
+      --white:   #FFFFFF;
+      --gray:    #6B7280;
+      --gray-l:  #9CA3AF;
+      --border:  #E5E7EB;
+
+      /* Spacing Scale */
+      --sp-1: 4px;
+      --sp-2: 8px;
+      --sp-3: 12px;
+      --sp-4: 16px;
+      --sp-5: 24px;
+      --sp-6: 32px;
+      --sp-7: 48px;
+      --sp-8: 64px;
+      --sp-9: 80px;
+
+      /* Border Radius */
+      --r-sm:  8px;
+      --r-md:  12px;
+      --r-lg:  16px;
+      --r-xl:  20px;
+      --r-2xl: 24px;
+
+      /* Shadows */
+      --shadow-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md:  0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+      --shadow-lg:  0 10px 32px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
+      --shadow-xl:  0 20px 60px rgba(0,0,0,0.14), 0 8px 16px rgba(0,0,0,0.08);
+      --shadow-teal: 0 8px 32px rgba(13,110,114,0.25), 0 2px 8px rgba(13,110,114,0.12);
+      --shadow-amber: 0 8px 32px rgba(240,165,0,0.2), 0 2px 8px rgba(240,165,0,0.1);
+
+      /* Transitions */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+      --t-fast: 0.18s;
+      --t-mid: 0.32s;
+      --t-slow: 0.55s;
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    html, body {
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background: var(--dark2);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ════════════════════════════════════════════
+       KEYFRAMES
+    ════════════════════════════════════════════ */
+
+    /* Entrance animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-24px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Background orb animation */
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+      33%       { transform: translate(-46%, -54%) scale(1.08); opacity: 0.85; }
+      66%       { transform: translate(-54%, -47%) scale(0.94); opacity: 0.65; }
+    }
+    @keyframes orbFloat2 {
+      0%, 100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+      50%       { transform: translate(-50%, -50%) scale(1.12) rotate(180deg); }
+    }
+
+    /* Number pulse */
+    @keyframes numPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(13,110,114,0); }
+      50%       { box-shadow: 0 0 0 8px rgba(13,110,114,0.2); }
+    }
+
+    /* Border glow */
+    @keyframes borderGlow {
+      0%, 100% { border-color: rgba(255,255,255,0.1); box-shadow: 0 0 0 0 rgba(240,165,0,0); }
+      50%       { border-color: rgba(240,165,0,0.35); box-shadow: 0 0 30px rgba(240,165,0,0.12); }
+    }
+
+    /* Stat counter fade */
+    @keyframes statReveal {
+      0%   { opacity: 0; transform: translateY(30px) scale(0.85); }
+      60%  { opacity: 1; transform: translateY(-4px) scale(1.02); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Timeline line draw */
+    @keyframes lineGrow {
+      from { width: 0; opacity: 0; }
+      to   { width: calc(100% - 44px); opacity: 1; }
+    }
+
+    /* ════════════════════════════════════════════
+       SLIDE ENGINE
+    ════════════════════════════════════════════ */
+    .deck { width:100vw; height:100vh; position:relative; }
+
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--t-slow) var(--ease-in-out);
+      overflow: hidden;
+      will-change: opacity;
+    }
+    .slide.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* Entrance animation helpers (only fire when .active) */
+    .slide .anim-headline,
+    .slide .anim-sub,
+    .slide .anim-pills,
+    .slide .anim-card,
+    .slide .anim-stat,
+    .slide .anim-meta,
+    .slide .anim-step {
+      opacity: 0;
+    }
+    .slide.active .anim-headline {
+      animation: fadeUp 0.6s var(--ease-out) 0.1s both;
+    }
+    .slide.active .anim-sub {
+      animation: fadeUp 0.6s var(--ease-out) 0.22s both;
+    }
+    .slide.active .anim-pills {
+      animation: fadeUp 0.55s var(--ease-out) 0.34s both;
+    }
+    .slide.active .anim-meta {
+      animation: fadeIn 0.6s ease 0.45s both;
+    }
+    .slide.active .anim-stat {
+      animation: statReveal 0.75s var(--ease-out) 0.15s both;
+    }
+    /* Staggered cards */
+    .slide.active .anim-card:nth-child(1) { animation: fadeUp 0.55s var(--ease-out) 0.18s both; }
+    .slide.active .anim-card:nth-child(2) { animation: fadeUp 0.55s var(--ease-out) 0.28s both; }
+    .slide.active .anim-card:nth-child(3) { animation: fadeUp 0.55s var(--ease-out) 0.38s both; }
+    .slide.active .anim-card:nth-child(4) { animation: fadeUp 0.55s var(--ease-out) 0.48s both; }
+    .slide.active .anim-card:nth-child(5) { animation: fadeUp 0.55s var(--ease-out) 0.56s both; }
+    /* Staggered steps */
+    .slide.active .anim-step:nth-child(1) { animation: slideInLeft 0.55s var(--ease-out) 0.2s both; }
+    .slide.active .anim-step:nth-child(2) { animation: slideInLeft 0.55s var(--ease-out) 0.34s both; }
+    .slide.active .anim-step:nth-child(3) { animation: slideInLeft 0.55s var(--ease-out) 0.48s both; }
+    .slide.active .anim-step:nth-child(4) { animation: slideInLeft 0.55s var(--ease-out) 0.62s both; }
+    /* Staggered why-cards */
+    .slide.active .anim-why:nth-child(1) { animation: scaleIn 0.5s var(--ease-out) 0.2s both; }
+    .slide.active .anim-why:nth-child(2) { animation: scaleIn 0.5s var(--ease-out) 0.32s both; }
+    .slide.active .anim-why:nth-child(3) { animation: scaleIn 0.5s var(--ease-out) 0.44s both; }
+    .slide.active .anim-why:nth-child(4) { animation: scaleIn 0.5s var(--ease-out) 0.56s both; }
+    .slide .anim-why { opacity: 0; }
+
+    /* ════════════════════════════════════════════
+       NAVIGATION
+    ════════════════════════════════════════════ */
+    .nav {
+      position: fixed; bottom: var(--sp-6); left: 50%;
+      transform: translateX(-50%);
+      display: flex; align-items: center; gap: 18px;
+      z-index: 999;
+      background: rgba(8, 8, 18, 0.55);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 100px;
+      padding: 8px 16px;
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.75);
+      font-size: 13px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background var(--t-fast) ease, border-color var(--t-fast) ease, transform var(--t-fast) ease;
+      will-change: transform;
+    }
+    .btn:hover {
+      background: rgba(255,255,255,0.16);
+      border-color: rgba(255,255,255,0.4);
+      transform: scale(1.08);
+    }
+    .btn:active { transform: scale(0.94); }
+
+    .dots { display: flex; gap: 6px; align-items: center; }
+    .dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      cursor: pointer;
+      transition: background var(--t-mid) var(--ease-out),
+                  transform var(--t-mid) var(--ease-out),
+                  width var(--t-mid) var(--ease-out);
+    }
+    .dot.on {
+      background: var(--amber);
+      transform: scale(1.5);
+      width: 14px;
+      border-radius: 3px;
+    }
+
+    .ctr {
+      font-size: 11px; color: rgba(255,255,255,0.3);
+      font-family: 'Inter', sans-serif; letter-spacing: 0.5px;
+      min-width: 32px; text-align: center; font-variant-numeric: tabular-nums;
+    }
+
+    /* ════════════════════════════════════════════
+       SHARED TOKENS
+    ════════════════════════════════════════════ */
+    h1,h2,h3,h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    .eyebrow {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 3px; text-transform: uppercase;
+      color: var(--amber);
+    }
+    .eyebrow.dark { color: var(--teal); }
+
+    .tag {
+      display: inline-block;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.5px;
+      padding: 4px 12px; border-radius: 20px;
+    }
+    .tag-amber { background: rgba(240,165,0,0.15); color: var(--amber); }
+    .tag-teal  { background: rgba(13,110,114,0.12); color: var(--teal); }
+
+    /* ════════════════════════════════════════════
+       SLIDE 1 – TITLE
+    ════════════════════════════════════════════ */
+    .s1 {
+      background: var(--dark);
+      align-items: center; justify-content: center;
+      text-align: center;
+    }
+
+    /* Animated orb */
+    .s1-orb {
+      position: absolute;
+      width: 700px; height: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(13,110,114,0.25) 0%, rgba(13,110,114,0.06) 45%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: orbFloat 12s ease-in-out infinite;
+      will-change: transform;
+    }
+    .s1-orb-2 {
+      position: absolute;
+      width: 400px; height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(240,165,0,0.08) 0%, transparent 65%);
+      top: 30%; left: 60%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: orbFloat2 18s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    /* Subtle noise texture overlay */
+    .s1::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 0;
+    }
+
+    .s1 > * { position: relative; z-index: 1; }
+
+    .s1 .wordmark {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 100px; font-weight: 800;
+      line-height: 1; letter-spacing: -3px;
+      color: var(--white);
+      margin-bottom: 20px;
+    }
+    .s1 .wordmark span { color: var(--teal-l); }
+    .s1 .claim {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 26px; font-weight: 500;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: var(--sp-9);
+      letter-spacing: -0.3px;
+    }
+    .s1 .claim em {
+      color: var(--amber);
+      font-style: normal; font-weight: 600;
+    }
+    .s1 .meta {
+      font-size: 14px; color: rgba(255,255,255,0.3);
+      letter-spacing: 0.3px; line-height: 1.8;
+    }
+    .s1 .meta strong { color: rgba(255,255,255,0.55); font-weight: 500; }
+
+    /* ════════════════════════════════════════════
+       SLIDE 2 – PROBLEM
+    ════════════════════════════════════════════ */
+    .s2 {
+      background: var(--dark2);
+      align-items: center; justify-content: center;
+      text-align: center; padding: 80px;
+    }
+    /* Subtle background texture */
+    .s2::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(13,110,114,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .s2 > * { position: relative; z-index: 1; }
+
+    .s2 .big-stat {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 130px; font-weight: 800;
+      line-height: 1; letter-spacing: -5px;
+      color: var(--white);
+      margin-bottom: var(--sp-5);
+    }
+    .s2 .big-stat span { color: var(--amber); }
+    .s2 .stat-label {
+      font-size: 22px; font-weight: 400;
+      color: rgba(255,255,255,0.55);
+      max-width: 560px; line-height: 1.6;
+      margin: 0 auto 40px;
+    }
+    .s2 .stat-label strong { color: rgba(255,255,255,0.85); font-weight: 600; }
+    .s2 .source {
+      font-size: 12px; color: rgba(255,255,255,0.2);
+    }
+
+    /* ════════════════════════════════════════════
+       SLIDE 3 – SOLUTION
+    ════════════════════════════════════════════ */
+    .s3 {
+      background: var(--white);
+      justify-content: center; padding: 80px;
+    }
+    .s3 .headline {
+      font-size: 64px; font-weight: 800;
+      color: var(--dark); line-height: 1.1;
+      letter-spacing: -2px; margin-bottom: 16px;
+      max-width: 800px;
+    }
+    .s3 .headline em { color: var(--teal); font-style: normal; }
+    .s3 .sub {
+      font-size: 20px; color: var(--gray);
+      margin-bottom: var(--sp-9); max-width: 560px;
+      line-height: 1.6;
+    }
+    .s3 .pills { display: flex; gap: 12px; flex-wrap: wrap; }
+    .pill {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--light);
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      padding: 12px 20px;
+      font-size: 15px; font-weight: 500;
+      color: var(--dark);
+      transition: transform var(--t-fast) var(--ease-out),
+                  box-shadow var(--t-fast) var(--ease-out),
+                  border-color var(--t-fast) ease;
+      cursor: default;
+    }
+    .pill:hover {
+      transform: scale(1.03);
+      box-shadow: var(--shadow-md);
+      border-color: rgba(13,110,114,0.25);
+    }
+    .pill .dot-teal {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--teal); flex-shrink: 0;
+    }
+
+    /* ════════════════════════════════════════════
+       SLIDE 4 – STARTER WORKSHOP
+    ════════════════════════════════════════════ */
+    .s4 {
+      background: var(--dark);
+      flex-direction: row !important;
+    }
+    .s4 .left-panel {
+      flex: 1; padding: 80px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .s4 .right-panel {
+      width: 420px;
+      background: var(--teal);
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 64px 52px;
+    }
+    .s4 h2 {
+      font-size: 52px; font-weight: 800;
+      color: var(--white); line-height: 1.1;
+      letter-spacing: -1.5px; margin-bottom: 20px;
+    }
+    .s4 .price-line {
+      display: flex; align-items: baseline; gap: 8px;
+      margin-bottom: 28px;
+    }
+    .s4 .price {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 64px; font-weight: 800;
+      color: var(--amber); letter-spacing: -2px;
+    }
+    .s4 .price-desc {
+      font-size: 16px; color: rgba(255,255,255,0.5);
+    }
+    .s4 .desc-text {
+      font-size: 17px; color: rgba(255,255,255,0.6);
+      line-height: 1.7; max-width: 420px;
+    }
+    .s4 .right-panel h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: var(--amber); margin-bottom: 28px;
+    }
+    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 16px; }
+    .feature-list li {
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: 16px; color: rgba(255,255,255,0.88);
+      line-height: 1.5;
+    }
+    .feature-list li .chk {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 2px;
+      font-size: 10px; color: var(--amber);
+    }
+
+    /* ════════════════════════════════════════════
+       SLIDE 5 – PAKETE (Cards)
+    ════════════════════════════════════════════ */
+    .s5 {
+      background: var(--light);
+      padding: 64px 80px;
+      justify-content: center;
+    }
+    .s5 .head { margin-bottom: 36px; }
+    .s5 h2 {
+      font-size: 48px; font-weight: 800;
+      color: var(--dark); letter-spacing: -1.5px;
+      line-height: 1.1; margin-bottom: 8px;
+    }
+    .s5 .sub { font-size: 17px; color: var(--gray-l); }
+    .cards-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+    .pk-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-xl);
+      padding: 24px 20px;
+      display: flex; flex-direction: column;
+      transition: transform var(--t-mid) var(--ease-out),
+                  box-shadow var(--t-mid) var(--ease-out);
+      will-change: transform;
+    }
+    .pk-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .pk-card.featured {
+      background: var(--dark);
+      border-color: var(--dark);
+    }
+    .pk-card.featured:hover {
+      box-shadow: 0 16px 48px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.12), 0 0 0 1px rgba(240,165,0,0.2);
+    }
+
+    /* SVG icon wrapper in cards */
+    .pk-icon {
+      width: 32px; height: 32px; margin-bottom: 14px;
+      color: var(--teal);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pk-card.featured .pk-icon { color: var(--amber); }
+
+    .pk-card .pk-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 15px; font-weight: 700;
+      color: var(--dark); margin-bottom: 6px;
+    }
+    .pk-card.featured .pk-name { color: var(--white); }
+    .pk-card .pk-desc {
+      font-size: 12px; color: var(--gray-l);
+      line-height: 1.5; flex: 1; margin-bottom: 16px;
+    }
+    .pk-card.featured .pk-desc { color: rgba(255,255,255,0.5); }
+    .pk-card .pk-setup {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 22px; font-weight: 800;
+      color: var(--dark); letter-spacing: -0.5px;
+      margin-bottom: 2px;
+    }
+    .pk-card.featured .pk-setup { color: var(--amber); }
+    .pk-card .pk-mo {
+      font-size: 12px; color: var(--gray-l);
+    }
+    .pk-card.featured .pk-mo { color: rgba(255,255,255,0.45); }
+    .pk-star {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--amber); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .pk-star svg { width: 10px; height: 10px; }
+
+    /* ════════════════════════════════════════════
+       SLIDE 6 – BERATUNG
+    ════════════════════════════════════════════ */
+    .s6 {
+      background: var(--white);
+      padding: 72px 80px;
+      justify-content: center;
+    }
+    .s6 h2 {
+      font-size: 48px; font-weight: 800;
+      color: var(--dark); letter-spacing: -1.5px;
+      margin-bottom: 8px;
+    }
+    .s6 .sub { font-size: 17px; color: var(--gray-l); margin-bottom: 40px; }
+    .ber-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    }
+    .ber-c {
+      border-radius: var(--r-xl); padding: 28px 24px;
+      display: flex; flex-direction: column;
+      transition: transform var(--t-mid) var(--ease-out),
+                  box-shadow var(--t-mid) var(--ease-out);
+    }
+    .ber-c:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    .ber-c.plain {
+      background: var(--light);
+      border: 1.5px solid var(--border);
+    }
+    .ber-c.dark-c {
+      background: var(--dark);
+    }
+    .ber-c .bc-label {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--teal); margin-bottom: 12px;
+    }
+    .ber-c.dark-c .bc-label { color: var(--amber); }
+    .ber-c .bc-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px; font-weight: 700;
+      color: var(--dark); margin-bottom: 8px; line-height: 1.2;
+    }
+    .ber-c.dark-c .bc-name { color: var(--white); }
+    .ber-c .bc-desc {
+      font-size: 14px; color: var(--gray);
+      line-height: 1.6; flex: 1; margin-bottom: 16px;
+    }
+    .ber-c.dark-c .bc-desc { color: rgba(255,255,255,0.5); }
+    .ber-c .bc-price {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 22px; font-weight: 800;
+      color: var(--teal);
+    }
+    .ber-c.dark-c .bc-price { color: var(--amber); }
+
+    /* ════════════════════════════════════════════
+       SLIDE 7 – VORGEHEN
+    ════════════════════════════════════════════ */
+    .s7 {
+      background: var(--dark);
+      padding: 72px 80px;
+      justify-content: center;
+    }
+    .s7 h2 {
+      font-size: 48px; font-weight: 800;
+      color: var(--white); letter-spacing: -1.5px;
+      margin-bottom: 8px;
+    }
+    .s7 .sub { font-size: 17px; color: rgba(255,255,255,0.4); margin-bottom: 52px; }
+    .timeline {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: 0; position: relative;
+    }
+
+    /* Gradient glow line */
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 22px; left: 22px;
+      height: 2px;
+      background: linear-gradient(90deg,
+        var(--teal-l) 0%,
+        rgba(13,110,114,0.5) 60%,
+        rgba(13,110,114,0.1) 100%
+      );
+      box-shadow: 0 0 12px rgba(13,110,114,0.4), 0 0 32px rgba(13,110,114,0.15);
+      border-radius: 2px;
+      animation: lineGrow 1s var(--ease-out) 0.3s both;
+    }
+    .slide.active .timeline::before {
+      /* lineGrow already applied, keep it persistent */
+    }
+
+    .tstep {
+      display: flex; flex-direction: column; gap: 14px; padding-right: 20px;
+    }
+    .tstep-num {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--teal);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px; font-weight: 800;
+      color: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      position: relative; z-index: 1;
+      flex-shrink: 0;
+      transition: box-shadow var(--t-mid) ease;
+    }
+    .slide.active .tstep-num {
+      animation: numPulse 3s ease-in-out 1s infinite;
+    }
+    .tstep-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 22px; font-weight: 700; color: var(--white);
+    }
+    .tstep-desc {
+      font-size: 15px; color: rgba(255,255,255,0.55); line-height: 1.6;
+    }
+    .tstep-tag {
+      display: inline-block;
+      font-size: 11px; font-weight: 600;
+      color: var(--amber);
+      background: rgba(240,165,0,0.12);
+      padding: 4px 12px; border-radius: 20px;
+      align-self: flex-start;
+    }
+
+    /* ════════════════════════════════════════════
+       SLIDE 8 – WHY BRAUNGUIDE
+    ════════════════════════════════════════════ */
+    .s8 {
+      background: var(--light);
+      padding: 72px 80px;
+      justify-content: center;
+    }
+    .s8 h2 {
+      font-size: 48px; font-weight: 800;
+      color: var(--dark); letter-spacing: -1.5px;
+      margin-bottom: 8px;
+    }
+    .s8 .sub { font-size: 17px; color: var(--gray-l); margin-bottom: 44px; }
+    .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .why-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-xl);
+      padding: 28px 28px;
+      display: flex; align-items: flex-start; gap: 18px;
+      transition: transform var(--t-mid) var(--ease-out),
+                  box-shadow var(--t-mid) var(--ease-out),
+                  border-color var(--t-mid) ease;
+    }
+    .why-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04);
+      border-color: rgba(13,110,114,0.18);
+    }
+    .why-ic {
+      width: 48px; height: 48px; border-radius: var(--r-md);
+      background: var(--dark);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      color: var(--white);
+    }
+    .why-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px; font-weight: 700; color: var(--dark);
+      margin-bottom: 6px;
+    }
+    .why-desc { font-size: 14px; color: var(--gray); line-height: 1.6; }
+
+    /* ════════════════════════════════════════════
+       SLIDE 9 – SOCIAL PROOF
+    ════════════════════════════════════════════ */
+    .s9 {
+      background: var(--white);
+      align-items: center; justify-content: center;
+      text-align: center; padding: 80px;
+    }
+    .s9 .quote-mark {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 120px; line-height: 0.7;
+      color: var(--teal); opacity: 0.2;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .s9 blockquote {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 30px; font-weight: 600;
+      color: var(--dark); line-height: 1.4;
+      max-width: 720px; margin: 0 auto 32px;
+      letter-spacing: -0.5px;
+    }
+    .s9 blockquote em { color: var(--teal); font-style: normal; }
+    .s9 .attrib {
+      font-size: 15px; color: var(--gray-l);
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .s9 .attrib::before, .s9 .attrib::after {
+      content: ''; width: 32px; height: 1px; background: var(--border);
+    }
+
+    /* ════════════════════════════════════════════
+       SLIDE 10 – CTA
+    ════════════════════════════════════════════ */
+    .s10 {
+      background: var(--dark);
+      align-items: center; justify-content: center;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+
+    /* Animated CTA orb */
+    .s10-orb {
+      position: absolute;
+      width: 800px; height: 800px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(13,110,114,0.22) 0%, rgba(13,110,114,0.05) 45%, transparent 65%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: orbFloat 14s ease-in-out infinite;
+      will-change: transform;
+    }
+    .s10 > * { position: relative; z-index: 1; }
+
+    .s10 .cta-eyebrow {
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 3px; text-transform: uppercase;
+      color: var(--teal-l); margin-bottom: 20px;
+    }
+    .s10 h2 {
+      font-size: 72px; font-weight: 800;
+      color: var(--white); line-height: 1.0;
+      letter-spacing: -2.5px; margin-bottom: 16px;
+    }
+    .s10 h2 em { color: var(--amber); font-style: normal; }
+    .s10 .cta-sub {
+      font-size: 20px; color: rgba(255,255,255,0.45);
+      margin-bottom: 48px; letter-spacing: -0.2px;
+    }
+    .cta-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--r-2xl);
+      padding: 32px 52px;
+      display: inline-flex; flex-direction: column;
+      align-items: center; gap: 10px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      animation: borderGlow 4s ease-in-out infinite;
+      will-change: border-color, box-shadow;
+    }
+    .cta-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px; font-weight: 700; color: var(--white);
+    }
+    .cta-brand {
+      font-size: 13px; color: var(--amber); font-weight: 600;
+    }
+    .cta-links {
+      font-size: 14px; color: rgba(255,255,255,0.4);
+      display: flex; gap: 16px; align-items: center;
+    }
+    .cta-links span { color: rgba(255,255,255,0.15); }
+
+    /* ════════════════════════════════════════════
+       SVG ICON HELPERS
+    ════════════════════════════════════════════ */
+    .icon-svg {
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ════════════════════════════════════════════
+       PRINT – Alle Folien untereinander, je 1 Seite
+       Landscape A4: 297mm × 210mm
+    ════════════════════════════════════════════ */
+    @media print {
+      @page {
+        size: 297mm 210mm;
+        margin: 0;
+      }
+
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        animation: none !important;
+        transition: none !important;
+      }
+
+      html, body {
+        width: 297mm;
+        height: auto;
+        overflow: visible !important;
+        background: white;
+      }
+
+      .deck {
+        width: 297mm;
+        height: auto;
+        position: static;
+      }
+
+      .nav { display: none !important; }
+
+      /* All slides: static, fixed size, one per page */
+      .slide {
+        position: static !important;
+        opacity: 1 !important;
+        pointer-events: all !important;
+        width: 297mm;
+        height: 210mm;
+        page-break-after: always;
+        break-after: page;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        overflow: hidden !important;
+      }
+
+      /* Entrance animations: reset for print */
+      .slide .anim-headline,
+      .slide .anim-sub,
+      .slide .anim-pills,
+      .slide .anim-card,
+      .slide .anim-stat,
+      .slide .anim-meta,
+      .slide .anim-step,
+      .slide .anim-why {
+        opacity: 1 !important;
+        animation: none !important;
+        transform: none !important;
+      }
+
+      .slide:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+
+      /* Orbs and decorative elements */
+      .s1-orb, .s1-orb-2, .s10-orb { animation: none !important; }
+
+      /* S1 Title */
+      .s1 .wordmark { font-size: 72px; margin-bottom: 14px; }
+      .s1 .claim { font-size: 22px; margin-bottom: 36px; }
+
+      /* S2 Problem */
+      .s2 { padding: 48px; }
+      .s2 .big-stat { font-size: 96px; letter-spacing: -3px; margin-bottom: 16px; }
+      .s2 .stat-label { font-size: 18px; margin-bottom: 24px; }
+
+      /* S3 Solution */
+      .s3 { padding: 48px 56px; }
+      .s3 .headline { font-size: 44px; letter-spacing: -1.5px; margin-bottom: 12px; }
+      .s3 .sub { font-size: 16px; margin-bottom: 36px; }
+
+      /* S4 Workshop */
+      .s4 .left-panel { padding: 48px; }
+      .s4 h2 { font-size: 36px; letter-spacing: -1px; margin-bottom: 14px; }
+      .s4 .price { font-size: 48px; }
+      .s4 .price-desc { font-size: 14px; }
+      .s4 .desc-text { font-size: 14px; }
+      .s4 .right-panel { width: 340px; padding: 40px 36px; }
+      .s4 .right-panel h3 { margin-bottom: 18px; }
+      .feature-list li { font-size: 13px; gap: 10px; }
+      .feature-list { gap: 12px; }
+
+      /* S5 Pakete */
+      .s5 { padding: 36px 48px; }
+      .s5 h2 { font-size: 34px; margin-bottom: 4px; }
+      .s5 .head { margin-bottom: 20px; }
+      .s5 .sub { font-size: 13px; }
+      .cards-row { gap: 8px; }
+      .pk-card { padding: 16px 14px; border-radius: 14px; }
+      .pk-icon { width: 24px; height: 24px; margin-bottom: 8px; }
+      .pk-card .pk-name { font-size: 13px; margin-bottom: 4px; }
+      .pk-card .pk-desc { font-size: 10px; margin-bottom: 10px; }
+      .pk-card .pk-setup { font-size: 18px; }
+      .pk-card .pk-mo { font-size: 10px; }
+      .pk-star { font-size: 8px; }
+
+      /* S6 Beratung */
+      .s6 { padding: 40px 48px; }
+      .s6 h2 { font-size: 34px; margin-bottom: 4px; }
+      .s6 .sub { font-size: 14px; margin-bottom: 24px; }
+      .ber-row { gap: 10px; }
+      .ber-c { padding: 20px 18px; border-radius: 14px; }
+      .ber-c .bc-name { font-size: 15px; margin-bottom: 4px; }
+      .ber-c .bc-desc { font-size: 12px; margin-bottom: 12px; }
+      .ber-c .bc-price { font-size: 18px; }
+
+      /* S7 Vorgehen */
+      .s7 { padding: 40px 48px; }
+      .s7 h2 { font-size: 34px; margin-bottom: 4px; }
+      .s7 .sub { margin-bottom: 32px; }
+      .tstep-title { font-size: 18px; }
+      .tstep-desc { font-size: 13px; }
+      .tstep-num { width: 36px; height: 36px; font-size: 15px; animation: none !important; }
+      .timeline::before { top: 18px; left: 18px; animation: none !important; width: calc(100% - 36px); opacity: 1; }
+
+      /* S8 Warum BraunGuide */
+      .s8 { padding: 40px 48px; }
+      .s8 h2 { font-size: 34px; margin-bottom: 4px; }
+      .s8 .sub { margin-bottom: 28px; }
+      .why-grid { gap: 12px; }
+      .why-card { padding: 20px; border-radius: 14px; gap: 14px; }
+      .why-ic { width: 40px; height: 40px; border-radius: 10px; }
+      .why-title { font-size: 15px; margin-bottom: 4px; }
+      .why-desc { font-size: 12px; }
+
+      /* S9 Social Proof */
+      .s9 { padding: 48px; }
+      .s9 .quote-mark { font-size: 80px; }
+      .s9 blockquote { font-size: 24px; max-width: 600px; margin-bottom: 24px; }
+
+      /* S10 CTA */
+      .s10 h2 { font-size: 54px; letter-spacing: -2px; }
+      .s10 .cta-sub { font-size: 17px; margin-bottom: 32px; }
+      .cta-card { padding: 24px 40px; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- ── 1. TITEL ── -->
+  <div class="slide s1 active">
+    <div class="s1-orb"></div>
+    <div class="s1-orb-2"></div>
+    <div class="eyebrow anim-headline" style="margin-bottom:20px;">KI-Beratung &amp; Automatisierung für KMU</div>
+    <div class="wordmark anim-headline" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:100px;font-weight:800;line-height:1;letter-spacing:-3px;color:#fff;margin-bottom:20px;">Braun<span style="color:var(--teal-l)">Guide</span></div>
+    <div class="claim anim-sub" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:500;color:rgba(255,255,255,0.5);margin-bottom:var(--sp-9);letter-spacing:-0.3px;">KI ohne <em style="color:var(--amber);font-style:normal;font-weight:600">Kauderwelsch.</em></div>
+    <div class="meta anim-meta" style="font-size:14px;color:rgba(255,255,255,0.3);letter-spacing:0.3px;line-height:1.8;">
+      <strong style="color:rgba(255,255,255,0.55);font-weight:500">Florian Braunschweig</strong><br>
+      braunguide.ai &nbsp;·&nbsp; [E-Mail] &nbsp;·&nbsp; [Telefon]
+    </div>
+  </div>
+
+  <!-- ── 2. PROBLEM ── -->
+  <div class="slide s2">
+    <div class="eyebrow anim-headline" style="margin-bottom:24px;">Die Realität in deutschen KMU-Büros</div>
+    <div class="big-stat anim-stat"><span>30%</span></div>
+    <p class="stat-label anim-sub">
+      der Arbeitszeit geht für <strong>repetitive Aufgaben</strong> verloren,<br>
+      die KI heute in Sekunden erledigt.
+    </p>
+    <span class="source anim-meta">Quelle: McKinsey Global Institute, 2024</span>
+  </div>
+
+  <!-- ── 3. LÖSUNG ── -->
+  <div class="slide s3">
+    <div class="eyebrow dark anim-headline" style="margin-bottom:16px;">Was wir tun</div>
+    <h2 class="headline anim-headline">Wir bringen KI in Ihr Büro.<br><em>Einfach. Persönlich. Wirksam.</em></h2>
+    <p class="sub anim-sub">Keine IT-Abteilung nötig. Kein Vorwissen. Nur messbare Ergebnisse – von Woche eins an.</p>
+    <div class="pills anim-pills">
+      <div class="pill"><span class="dot-teal"></span>Prozesse analysieren</div>
+      <div class="pill"><span class="dot-teal"></span>Lösungen einrichten</div>
+      <div class="pill"><span class="dot-teal"></span>Team einweisen</div>
+      <div class="pill"><span class="dot-teal"></span>Langfristig begleiten</div>
+    </div>
+  </div>
+
+  <!-- ── 4. STARTER WORKSHOP ── -->
+  <div class="slide s4">
+    <div class="left-panel">
+      <div class="eyebrow anim-headline" style="margin-bottom:16px;">Einstieg ohne Risiko</div>
+      <h2 class="anim-headline">Noch kein KI-Erlebnis?<br>Perfekt.</h2>
+      <div class="price-line anim-sub">
+        <div class="price">249€</div>
+        <div class="price-desc">· 2 Stunden · vor Ort oder remote</div>
+      </div>
+      <p class="desc-text anim-sub">
+        Der KI Starter Workshop ist der einfachste Weg, um KI in Ihrem Büro erlebbar zu machen – ohne Investitionsrisiko, ohne technisches Vorwissen.
+      </p>
+    </div>
+    <div class="right-panel">
+      <h3 class="anim-headline">Was Sie mitnehmen</h3>
+      <ul class="feature-list anim-sub">
+        <li><div class="chk">✓</div>KI-Tools eingerichtet &amp; direkt nutzbar</li>
+        <li><div class="chk">✓</div>Konkrete Anwendungsfälle für Ihr Unternehmen</li>
+        <li><div class="chk">✓</div>Ihr Team kann KI ab sofort einsetzen</li>
+        <li><div class="chk">✓</div>Klare Empfehlung: Was lohnt sich als nächstes?</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── 5. PAKETE ── -->
+  <div class="slide s5">
+    <div class="head">
+      <div class="eyebrow dark anim-headline" style="margin-bottom:10px;">Fertige Lösungen</div>
+      <h2 class="anim-headline">Eingerichtet. Getestet. Sofort einsatzbereit.</h2>
+      <p class="sub anim-sub">Setup-Preis einmalig · Monatliche Betreuung inkl. Support &amp; Updates · Alle Preise zzgl. MwSt.</p>
+    </div>
+    <div class="cards-row">
+      <!-- Card 1: Telefon -->
+      <div class="pk-card anim-card">
+        <div class="pk-icon">
+          <!-- Phone icon -->
+          <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.48 2 2 0 0 1 3.6 1.26h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.85a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </div>
+        <div class="pk-name">KI-Telefon­assistent</div>
+        <div class="pk-desc">Anrufe entgegennehmen &amp; Termine buchen – rund um die Uhr</div>
+        <div class="pk-setup">790€</div>
+        <div class="pk-mo">+ 89€/Monat</div>
+      </div>
+      <!-- Card 2: E-Mail -->
+      <div class="pk-card anim-card">
+        <div class="pk-icon">
+          <!-- Envelope icon -->
+          <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="m22 7-10 7L2 7"/>
+          </svg>
+        </div>
+        <div class="pk-name">E-Mail-Automatisierung</div>
+        <div class="pk-desc">Anfragen sortieren, kategorisieren &amp; automatisch beantworten</div>
+        <div class="pk-setup">590€</div>
+        <div class="pk-mo">+ 69€/Monat</div>
+      </div>
+      <!-- Card 3: Terminplanung -->
+      <div class="pk-card anim-card">
+        <div class="pk-icon">
+          <!-- Calendar icon -->
+          <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <path d="M16 2v4M8 2v4M3 10h18"/>
+            <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="pk-name">Terminplanung</div>
+        <div class="pk-desc">Termine vollautomatisch koordinieren &amp; bestätigen</div>
+        <div class="pk-setup">490€</div>
+        <div class="pk-mo">+ 59€/Monat</div>
+      </div>
+      <!-- Card 4: Dokumenten -->
+      <div class="pk-card anim-card">
+        <div class="pk-icon">
+          <!-- Document icon -->
+          <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="8" y1="13" x2="16" y2="13"/>
+            <line x1="8" y1="17" x2="16" y2="17"/>
+            <line x1="8" y1="9" x2="11" y2="9"/>
+          </svg>
+        </div>
+        <div class="pk-name">Dokumenten-Assistent</div>
+        <div class="pk-desc">Dokumente erstellen, verwalten &amp; strukturiert ablegen</div>
+        <div class="pk-setup">690€</div>
+        <div class="pk-mo">+ 79€/Monat</div>
+      </div>
+      <!-- Card 5: Bundle (featured) -->
+      <div class="pk-card featured anim-card">
+        <div class="pk-star">
+          <svg class="icon-svg" width="10" height="10" viewBox="0 0 24 24" style="stroke:var(--amber);fill:var(--amber)">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          Beliebteste Wahl
+        </div>
+        <div class="pk-icon">
+          <!-- Rocket icon -->
+          <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24">
+            <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+            <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M15 12v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+          </svg>
+        </div>
+        <div class="pk-name">Starter-Bundle</div>
+        <div class="pk-desc">2 Pakete nach Wahl – kombiniert &amp; günstiger</div>
+        <div class="pk-setup">1.290€</div>
+        <div class="pk-mo">+ 139€/Monat</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 6. BERATUNG ── -->
+  <div class="slide s6">
+    <div class="eyebrow dark anim-headline" style="margin-bottom:10px;">Individuelle Beratung</div>
+    <h2 class="anim-headline">Für komplexere Anforderungen.</h2>
+    <p class="sub anim-sub">Wenn Standardpakete nicht reichen – maßgeschneidert nach Ihren Prozessen.</p>
+    <div class="ber-row">
+      <div class="ber-c dark-c anim-card">
+        <div class="bc-label">Einstieg</div>
+        <div class="bc-name">Potential­analyse</div>
+        <div class="bc-desc">60 Minuten – wir zeigen konkret wo KI bei Ihnen den größten Unterschied macht.</div>
+        <div class="bc-price">Kostenlos</div>
+      </div>
+      <div class="ber-c plain anim-card">
+        <div class="bc-label">Workshop</div>
+        <div class="bc-name">KI-Strategie</div>
+        <div class="bc-desc">Halbtag (3h) – Ihre persönliche KI-Roadmap, entwickelt gemeinsam mit Ihnen.</div>
+        <div class="bc-price">490€</div>
+      </div>
+      <div class="ber-c plain anim-card">
+        <div class="bc-label">Projekt</div>
+        <div class="bc-name">Individual­lösung</div>
+        <div class="bc-desc">Komplexe Automatisierungen &amp; Integrationen exakt nach Ihren Anforderungen.</div>
+        <div class="bc-price">Ab 1.500€</div>
+      </div>
+      <div class="ber-c plain anim-card">
+        <div class="bc-label">Laufend</div>
+        <div class="bc-name">Retainer</div>
+        <div class="bc-desc">Ihr fester KI-Ansprechpartner – monatlich, flexibel, immer erreichbar.</div>
+        <div class="bc-price">Ab 299€/Mo</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 7. VORGEHEN ── -->
+  <div class="slide s7">
+    <div class="eyebrow anim-headline" style="margin-bottom:14px;">Unser Vorgehen</div>
+    <h2 class="anim-headline">Von Null auf KI in 4 Schritten.</h2>
+    <p class="sub anim-sub">Transparent. Strukturiert. Ohne böse Überraschungen.</p>
+    <div class="timeline">
+      <div class="tstep anim-step">
+        <div class="tstep-num">1</div>
+        <div class="tstep-title">Analyse</div>
+        <div class="tstep-desc">Wir verstehen Ihre Abläufe und zeigen konkret wo KI den größten Hebel hat.</div>
+        <span class="tstep-tag">Kostenlos</span>
+      </div>
+      <div class="tstep anim-step">
+        <div class="tstep-num">2</div>
+        <div class="tstep-title">Empfehlung</div>
+        <div class="tstep-desc">Klarer Plan mit konkreter Lösung, messbarem Nutzen und transparentem Preis.</div>
+        <span class="tstep-tag">Ca. 1 Woche</span>
+      </div>
+      <div class="tstep anim-step">
+        <div class="tstep-num">3</div>
+        <div class="tstep-title">Umsetzung</div>
+        <div class="tstep-desc">Wir richten alles ein und schulen Ihr Team. Sie müssen nichts selbst bauen.</div>
+        <span class="tstep-tag">1–2 Wochen</span>
+      </div>
+      <div class="tstep anim-step">
+        <div class="tstep-num">4</div>
+        <div class="tstep-title">Betreuung</div>
+        <div class="tstep-desc">Wir bleiben langfristig Ihr Ansprechpartner – monatlich oder nach Bedarf.</div>
+        <span class="tstep-tag">Laufend</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 8. WARUM BRAUNGUIDE ── -->
+  <div class="slide s8">
+    <div class="eyebrow dark anim-headline" style="margin-bottom:10px;">Warum BraunGuide</div>
+    <h2 class="anim-headline">KI-Beratung, die wirklich zu KMU passt.</h2>
+    <p class="sub anim-sub">Nicht die größte Agentur – aber die, die wirklich zuhört und liefert.</p>
+    <div class="why-grid">
+      <div class="why-card anim-why">
+        <div class="why-ic">
+          <!-- Chat bubble icon -->
+          <svg class="icon-svg" width="24" height="24" viewBox="0 0 24 24" style="color:var(--teal-l)">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="why-title">Kein Kauderwelsch</div>
+          <div class="why-desc">Wir reden wie Menschen, nicht wie Maschinen. Verständlich von der ersten Minute an.</div>
+        </div>
+      </div>
+      <div class="why-card anim-why">
+        <div class="why-ic">
+          <!-- Target icon -->
+          <svg class="icon-svg" width="24" height="24" viewBox="0 0 24 24" style="color:var(--amber)">
+            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="12" r="6"/>
+            <circle cx="12" cy="12" r="2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="why-title">Kein Einheitsbrei</div>
+          <div class="why-desc">Jede Lösung wird auf Ihr Unternehmen zugeschnitten. Nicht umgekehrt.</div>
+        </div>
+      </div>
+      <div class="why-card anim-why">
+        <div class="why-ic">
+          <!-- Shield icon -->
+          <svg class="icon-svg" width="24" height="24" viewBox="0 0 24 24" style="color:var(--teal-l)">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4" stroke-width="1.75"/>
+          </svg>
+        </div>
+        <div>
+          <div class="why-title">Kein Risiko</div>
+          <div class="why-desc">Kostenlose Erstanalyse, transparente Preise, faire Verträge. Keine Überraschungen.</div>
+        </div>
+      </div>
+      <div class="why-card anim-why">
+        <div class="why-ic">
+          <!-- Handshake icon -->
+          <svg class="icon-svg" width="24" height="24" viewBox="0 0 24 24" style="color:var(--amber)">
+            <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+            <path d="M12 5.36 8.87 8.5a2.13 2.13 0 0 0 0 3h0a2.13 2.13 0 0 0 3.02 0L12 11.4l.11.1a2.13 2.13 0 0 0 3.02 0h0a2.13 2.13 0 0 0 0-3L12 5.36z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="why-title">Kein Alleingang</div>
+          <div class="why-desc">Wir richten ein, erklären alles und bleiben dauerhaft als Partner an Ihrer Seite.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 9. SOCIAL PROOF ── -->
+  <div class="slide s9">
+    <span class="quote-mark anim-stat">"</span>
+    <blockquote class="anim-headline">
+      „Wir haben nicht gedacht, dass KI schon so einfach sein kann.<br>
+      BraunGuide hat uns in zwei Wochen mehr gebracht<br>
+      als drei Jahre Eigenversuche."
+    </blockquote>
+    <div class="attrib anim-sub">[Vorname N.], Geschäftsführer · [Branche], [Stadt]</div>
+    <div style="margin-top:32px;" class="anim-meta">
+      <span class="tag tag-teal">Platzhalter – wird nach erstem Pilotprojekt befüllt</span>
+    </div>
+  </div>
+
+  <!-- ── 10. CTA ── -->
+  <div class="slide s10">
+    <div class="s10-orb"></div>
+    <div class="cta-eyebrow anim-headline">Nächster Schritt</div>
+    <h2 class="anim-headline">Erstgespräch.<br><em>Kostenlos.</em></h2>
+    <p class="cta-sub anim-sub">60 Minuten · Unverbindlich · Sofortiger Mehrwert</p>
+    <div class="cta-card anim-meta">
+      <div class="cta-name">Florian Braunschweig</div>
+      <div class="cta-brand">BraunGuide · KI ohne Kauderwelsch.</div>
+      <div class="cta-links">
+        <span>braunguide.ai</span>
+        <span>·</span>
+        <span>[E-Mail]</span>
+        <span>·</span>
+        <span>[Telefon]</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── DOTS & NAV ── -->
+<div class="nav">
+  <button class="btn" id="prev">&#8592;</button>
+  <div class="dots" id="dots"></div>
+  <span class="ctr" id="ctr">1/10</span>
+  <button class="btn" id="next">&#8594;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsEl = document.getElementById('dots');
+  const ctr    = document.getElementById('ctr');
+  let cur = 0;
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    d.addEventListener('click', () => go(i));
+    dotsEl.appendChild(d);
+  });
+
+  function go(idx) {
+    slides[cur].classList.remove('active');
+    dotsEl.children[cur].classList.remove('on');
+    cur = (idx + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    dotsEl.children[cur].classList.add('on');
+    ctr.textContent = `${cur + 1}/${slides.length}`;
+  }
+
+  document.getElementById('next').addEventListener('click', () => go(cur + 1));
+  document.getElementById('prev').addEventListener('click', () => go(cur - 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') go(cur + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                      go(cur - 1);
+  });
+</script>
+</body>
+</html>
