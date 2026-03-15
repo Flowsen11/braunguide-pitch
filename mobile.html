@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>BraunGuide – KI ohne Kauderwelsch</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+
+    /* ════════════════════════════════════════
+       DESIGN TOKENS
+    ════════════════════════════════════════ */
+    :root {
+      --teal:    #0D6E72;
+      --teal-l:  #128A8F;
+      --teal-xl: #1AA8AE;
+      --amber:   #F0A500;
+      --amber-l: #F5B82E;
+      --dark:    #1A1A2E;
+      --dark2:   #0F0F1E;
+      --light:   #F8F9FA;
+      --white:   #FFFFFF;
+      --gray:    #6B7280;
+      --gray-l:  #9CA3AF;
+      --border:  #E5E7EB;
+
+      --r-sm:  8px;
+      --r-md:  12px;
+      --r-lg:  16px;
+      --r-xl:  20px;
+      --r-2xl: 24px;
+
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+      --t-fast: 0.18s;
+      --t-mid: 0.32s;
+      --t-slow: 0.45s;
+
+      /* Safe area insets */
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    *, *::before, *::after {
+      margin: 0; padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background: var(--dark2);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    h1,h2,h3,h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    /* ════════════════════════════════════════
+       KEYFRAMES
+    ════════════════════════════════════════ */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.93); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+      33%       { transform: translate(-46%, -54%) scale(1.07); opacity: 0.85; }
+      66%       { transform: translate(-54%, -47%) scale(0.95); opacity: 0.65; }
+    }
+    @keyframes orbFloat2 {
+      0%, 100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+      50%       { transform: translate(-50%, -50%) scale(1.1) rotate(180deg); }
+    }
+    @keyframes numPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(13,110,114,0); }
+      50%       { box-shadow: 0 0 0 6px rgba(13,110,114,0.2); }
+    }
+    @keyframes borderGlow {
+      0%, 100% { border-color: rgba(255,255,255,0.1); box-shadow: 0 0 0 0 rgba(240,165,0,0); }
+      50%       { border-color: rgba(240,165,0,0.3); box-shadow: 0 0 24px rgba(240,165,0,0.1); }
+    }
+    @keyframes statReveal {
+      0%   { opacity: 0; transform: translateY(24px) scale(0.88); }
+      60%  { opacity: 1; transform: translateY(-3px) scale(1.02); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes swipeHint {
+      0%, 100% { opacity: 0.35; transform: translateX(0); }
+      50%       { opacity: 0.7; transform: translateX(5px); }
+    }
+    @keyframes swipeHintLeft {
+      0%, 100% { opacity: 0.35; transform: translateX(0); }
+      50%       { opacity: 0.7; transform: translateX(-5px); }
+    }
+
+    /* ════════════════════════════════════════
+       DECK & SLIDE ENGINE
+    ════════════════════════════════════════ */
+    .deck {
+      width: 100vw;
+      height: 100dvh;
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      will-change: opacity, transform;
+      overflow: hidden;
+      transition: opacity var(--t-slow) var(--ease-in-out);
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* Slide content scroll wrapper */
+    .slide-inner {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      /* Bottom padding for nav */
+      padding-bottom: calc(72px + var(--safe-bottom));
+    }
+
+    /* ── Entrance animations ── */
+    .slide .anim-headline,
+    .slide .anim-sub,
+    .slide .anim-pills,
+    .slide .anim-card,
+    .slide .anim-stat,
+    .slide .anim-meta,
+    .slide .anim-step,
+    .slide .anim-why {
+      opacity: 0;
+    }
+
+    .slide.active .anim-headline {
+      animation: fadeUp 0.5s var(--ease-out) 0.08s both;
+    }
+    .slide.active .anim-sub {
+      animation: fadeUp 0.5s var(--ease-out) 0.18s both;
+    }
+    .slide.active .anim-pills {
+      animation: fadeUp 0.5s var(--ease-out) 0.28s both;
+    }
+    .slide.active .anim-meta {
+      animation: fadeIn 0.5s ease 0.35s both;
+    }
+    .slide.active .anim-stat {
+      animation: statReveal 0.65s var(--ease-out) 0.12s both;
+    }
+    /* Staggered cards – tighter on mobile */
+    .slide.active .anim-card:nth-child(1) { animation: fadeUp 0.45s var(--ease-out) 0.12s both; }
+    .slide.active .anim-card:nth-child(2) { animation: fadeUp 0.45s var(--ease-out) 0.20s both; }
+    .slide.active .anim-card:nth-child(3) { animation: fadeUp 0.45s var(--ease-out) 0.28s both; }
+    .slide.active .anim-card:nth-child(4) { animation: fadeUp 0.45s var(--ease-out) 0.36s both; }
+    .slide.active .anim-card:nth-child(5) { animation: fadeUp 0.45s var(--ease-out) 0.44s both; }
+    .slide.active .anim-step:nth-child(1) { animation: slideInLeft 0.45s var(--ease-out) 0.12s both; }
+    .slide.active .anim-step:nth-child(2) { animation: slideInLeft 0.45s var(--ease-out) 0.22s both; }
+    .slide.active .anim-step:nth-child(3) { animation: slideInLeft 0.45s var(--ease-out) 0.32s both; }
+    .slide.active .anim-step:nth-child(4) { animation: slideInLeft 0.45s var(--ease-out) 0.42s both; }
+    .slide.active .anim-why:nth-child(1) { animation: scaleIn 0.42s var(--ease-out) 0.12s both; }
+    .slide.active .anim-why:nth-child(2) { animation: scaleIn 0.42s var(--ease-out) 0.22s both; }
+    .slide.active .anim-why:nth-child(3) { animation: scaleIn 0.42s var(--ease-out) 0.32s both; }
+    .slide.active .anim-why:nth-child(4) { animation: scaleIn 0.42s var(--ease-out) 0.42s both; }
+    .slide .anim-why { opacity: 0; }
+
+    /* ════════════════════════════════════════
+       NAVIGATION BAR (fixed bottom)
+    ════════════════════════════════════════ */
+    .nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 999;
+      height: calc(60px + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: rgba(8, 8, 18, 0.72);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      backdrop-filter: blur(24px) saturate(1.5);
+      -webkit-backdrop-filter: blur(24px) saturate(1.5);
+    }
+
+    .btn {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.65);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--t-fast) ease,
+                  border-color var(--t-fast) ease,
+                  transform var(--t-fast) ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .btn:active {
+      background: rgba(255,255,255,0.18);
+      transform: scale(0.92);
+    }
+
+    .dots {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      flex: 1;
+      justify-content: center;
+      max-width: 200px;
+    }
+
+    .dot {
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.2);
+      cursor: pointer;
+      transition: background var(--t-mid) var(--ease-out),
+                  width var(--t-mid) var(--ease-out);
+      width: 5px;
+      min-width: 5px;
+    }
+    .dot.on {
+      background: var(--amber);
+      width: 18px;
+    }
+
+    .ctr {
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
+      font-family: 'Inter', sans-serif;
+      letter-spacing: 0.5px;
+      min-width: 30px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ════════════════════════════════════════
+       SHARED TOKENS
+    ════════════════════════════════════════ */
+    .eyebrow {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--amber);
+    }
+    .eyebrow.dark { color: var(--teal); }
+
+    .tag {
+      display: inline-block;
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.5px;
+      padding: 4px 12px; border-radius: 20px;
+    }
+    .tag-amber { background: rgba(240,165,0,0.15); color: var(--amber); }
+    .tag-teal  { background: rgba(13,110,114,0.12); color: var(--teal); }
+
+    .icon-svg {
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ════════════════════════════════════════
+       SWIPE HINT (slide 1 only)
+    ════════════════════════════════════════ */
+    .swipe-hint {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.5px;
+      margin-top: 32px;
+    }
+    .swipe-arrow-r {
+      animation: swipeHint 2s ease-in-out infinite;
+    }
+    .swipe-arrow-l {
+      animation: swipeHintLeft 2s ease-in-out infinite;
+    }
+
+    /* ════════════════════════════════════════
+       SLIDE 1 – TITLE
+    ════════════════════════════════════════ */
+    .s1 {
+      background: var(--dark);
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .s1-orb {
+      position: absolute;
+      width: 440px; height: 440px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(13,110,114,0.28) 0%, rgba(13,110,114,0.07) 45%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: orbFloat 12s ease-in-out infinite;
+    }
+    .s1-orb-2 {
+      position: absolute;
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(240,165,0,0.09) 0%, transparent 65%);
+      top: 28%; left: 62%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: orbFloat2 18s ease-in-out infinite;
+    }
+    .s1::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 0;
+    }
+    .s1 > * { position: relative; z-index: 1; }
+
+    .s1 .wordmark {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 56px; font-weight: 800;
+      line-height: 1; letter-spacing: -2px;
+      color: var(--white);
+      margin-bottom: 14px;
+    }
+    .s1 .wordmark span { color: var(--teal-l); }
+    .s1 .claim {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px; font-weight: 500;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 40px;
+      letter-spacing: -0.2px;
+    }
+    .s1 .claim em {
+      color: var(--amber);
+      font-style: normal; font-weight: 600;
+    }
+    .s1 .meta {
+      font-size: 13px; color: rgba(255,255,255,0.3);
+      letter-spacing: 0.2px; line-height: 1.9;
+    }
+    .s1 .meta strong {
+      color: rgba(255,255,255,0.55);
+      font-weight: 500;
+    }
+
+    /* ════════════════════════════════════════
+       SLIDE 2 – PROBLEM
+    ════════════════════════════════════════ */
+    .s2 {
+      background: var(--dark2);
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .s2::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% 100%, rgba(13,110,114,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .s2 > * { position: relative; z-index: 1; }
+
+    .s2-inner {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px 28px;
+      min-height: 100dvh;
+    }
+    .s2 .big-stat {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 96px; font-weight: 800;
+      line-height: 1; letter-spacing: -4px;
+      color: var(--white);
+      margin-bottom: 20px;
+    }
+    .s2 .big-stat span { color: var(--amber); }
+    .s2 .stat-label {
+      font-size: 18px; font-weight: 400;
+      color: rgba(255,255,255,0.55);
+      max-width: 320px; line-height: 1.65;
+      margin: 0 auto 28px;
+    }
+    .s2 .stat-label strong {
+      color: rgba(255,255,255,0.88);
+      font-weight: 600;
+    }
+    .s2 .source {
+      font-size: 11px;
+      color: rgba(255,255,255,0.2);
+    }
+
+    /* ════════════════════════════════════════
+       SLIDE 3 – SOLUTION
+    ════════════════════════════════════════ */
+    .s3 {
+      background: var(--white);
+    }
+    .s3-inner {
+      padding: 48px 28px 32px;
+    }
+    .s3 .headline {
+      font-size: 34px; font-weight: 800;
+      color: var(--dark); line-height: 1.15;
+      letter-spacing: -1px; margin-bottom: 14px;
+    }
+    .s3 .headline em { color: var(--teal); font-style: normal; }
+    .s3 .sub {
+      font-size: 15px; color: var(--gray);
+      margin-bottom: 32px; line-height: 1.65;
+    }
+    .s3 .pills {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .pill {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--light);
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      padding: 13px 20px;
+      font-size: 15px; font-weight: 500;
+      color: var(--dark);
+    }
+    .pill .dot-teal {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--teal); flex-shrink: 0;
+    }
+
+    /* ════════════════════════════════════════
+       SLIDE 4 – STARTER WORKSHOP
+    ════════════════════════════════════════ */
+    .s4 {
+      background: var(--dark);
+    }
+    .s4-inner {
+      padding: 48px 28px 32px;
+    }
+    .s4 h2 {
+      font-size: 34px; font-weight: 800;
+      color: var(--white); line-height: 1.15;
+      letter-spacing: -1px; margin-bottom: 20px;
+    }
+    .s4 .price-line {
+      display: flex; align-items: baseline; gap: 10px;
+      margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .s4 .price {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 52px; font-weight: 800;
+      color: var(--amber); letter-spacing: -2px;
+    }
+    .s4 .price-desc {
+      font-size: 15px; color: rgba(255,255,255,0.45);
+    }
+    .s4 .desc-text {
+      font-size: 15px; color: rgba(255,255,255,0.6);
+      line-height: 1.7; margin-bottom: 32px;
+    }
+    /* Right panel becomes bottom card on mobile */
+    .s4 .right-panel {
+      background: var(--teal);
+      border-radius: var(--r-xl);
+      padding: 28px 24px;
+      margin-bottom: 8px;
+    }
+    .s4 .right-panel h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: var(--amber); margin-bottom: 22px;
+    }
+    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .feature-list li {
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: 15px; color: rgba(255,255,255,0.9);
+      line-height: 1.5;
+    }
+    .feature-list li .chk {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+      font-size: 10px; color: var(--amber);
+    }
+
+    /* ════════════════════════════════════════
+       SLIDE 5 – PAKETE
+    ════════════════════════════════════════ */
+    .s5 {
+      background: var(--light);
+    }
+    .s5-inner {
+      padding: 48px 28px 32px;
+    }
+    .s5 .head { margin-bottom: 28px; }
+    .s5 h2 {
+      font-size: 32px; font-weight: 800;
+      color: var(--dark); letter-spacing: -1px;
+      line-height: 1.15; margin-bottom: 6px;
+    }
+    .s5 .sub { font-size: 13px; color: var(--gray-l); line-height: 1.5; }
+
+    .cards-row {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .pk-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-xl);
+      padding: 22px 20px;
+      display: flex; flex-direction: column;
+    }
+    .pk-card.featured {
+      background: var(--dark);
+      border-color: var(--dark);
+    }
+    .pk-icon {
+      width: 32px; height: 32px; margin-bottom: 12px;
+      color: var(--teal);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pk-card.featured .pk-icon { color: var(--amber); }
+    .pk-card .pk-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 16px; font-weight: 700;
+      color: var(--dark); margin-bottom: 5px;
+    }
+    .pk-card.featured .pk-name { color: var(--white); }
+    .pk-card .pk-desc {
+      font-size: 13px; color: var(--gray-l);
+      line-height: 1.55; margin-bottom: 14px;
+    }
+    .pk-card.featured .pk-desc { color: rgba(255,255,255,0.5); }
+    .pk-card .pk-setup {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 24px; font-weight: 800;
+      color: var(--dark); letter-spacing: -0.5px;
+      margin-bottom: 2px;
+    }
+    .pk-card.featured .pk-setup { color: var(--amber); }
+    .pk-card .pk-mo {
+      font-size: 13px; color: var(--gray-l);
+    }
+    .pk-card.featured .pk-mo { color: rgba(255,255,255,0.45); }
+    .pk-star {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--amber); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 5px;
+    }
+
+    /* ════════════════════════════════════════
+       SLIDE 6 – BERATUNG
+    ════════════════════════════════════════ */
+    .s6 {
+      background: var(--white);
+    }
+    .s6-inner {
+      padding: 48px 28px 32px;
+    }
+    .s6 h2 {
+      font-size: 32px; font-weight: 800;
+      color: var(--dark); letter-spacing: -1px;
+      margin-bottom: 6px; line-height: 1.15;
+    }
+    .s6 .sub {
+      font-size: 14px; color: var(--gray-l);
+      margin-bottom: 28px; line-height: 1.55;
+    }
+    .ber-row {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .ber-c {
+      border-radius: var(--r-xl); padding: 24px 20px;
+      display: flex; flex-direction: column;
+    }
+    .ber-c.plain {
+      background: var(--light);
+      border: 1.5px solid var(--border);
+    }
+    .ber-c.dark-c {
+      background: var(--dark);
+    }
+    .ber-c .bc-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--teal); margin-bottom: 10px;
+    }
+    .ber-c.dark-c .bc-label { color: var(--amber); }
+    .ber-c .bc-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px; font-weight: 700;
+      color: var(--dark); margin-bottom: 8px; line-height: 1.2;
+    }
+    .ber-c.dark-c .bc-name { color: var(--white); }
+    .ber-c .bc-desc {
+      font-size: 14px; color: var(--gray);
+      line-height: 1.6; flex: 1; margin-bottom: 14px;
+    }
+    .ber-c.dark-c .bc-desc { color: rgba(255,255,255,0.5); }
+    .ber-c .bc-price {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 22px; font-weight: 800;
+      color: var(--teal);
+    }
+    .ber-c.dark-c .bc-price { color: var(--amber); }
+
+    /* ════════════════════════════════════════
+       SLIDE 7 – VORGEHEN (vertical timeline)
+    ════════════════════════════════════════ */
+    .s7 {
+      background: var(--dark);
+    }
+    .s7-inner {
+      padding: 48px 28px 32px;
+    }
+    .s7 h2 {
+      font-size: 32px; font-weight: 800;
+      color: var(--white); letter-spacing: -1px;
+      margin-bottom: 6px; line-height: 1.15;
+    }
+    .s7 .sub {
+      font-size: 14px; color: rgba(255,255,255,0.4);
+      margin-bottom: 36px; line-height: 1.55;
+    }
+
+    /* Vertical timeline */
+    .timeline-v {
+      display: flex; flex-direction: column;
+      gap: 0;
+      position: relative;
+    }
+    /* Vertical connecting line */
+    .timeline-v::before {
+      content: '';
+      position: absolute;
+      top: 22px; left: 21px;
+      width: 2px;
+      height: calc(100% - 44px);
+      background: linear-gradient(180deg,
+        var(--teal-l) 0%,
+        rgba(13,110,114,0.4) 60%,
+        rgba(13,110,114,0.1) 100%
+      );
+      box-shadow: 0 0 8px rgba(13,110,114,0.3);
+      border-radius: 2px;
+    }
+
+    .tstep {
+      display: flex; gap: 18px;
+      padding-bottom: 28px;
+      position: relative;
+    }
+    .tstep:last-child { padding-bottom: 0; }
+
+    .tstep-num {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--teal);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px; font-weight: 800;
+      color: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; position: relative; z-index: 1;
+    }
+    .slide.active .tstep-num {
+      animation: numPulse 3s ease-in-out 1s infinite;
+    }
+
+    .tstep-body { padding-top: 10px; }
+    .tstep-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 20px; font-weight: 700; color: var(--white);
+      margin-bottom: 6px;
+    }
+    .tstep-desc {
+      font-size: 14px; color: rgba(255,255,255,0.55);
+      line-height: 1.6; margin-bottom: 8px;
+    }
+    .tstep-tag {
+      display: inline-block;
+      font-size: 11px; font-weight: 600;
+      color: var(--amber);
+      background: rgba(240,165,0,0.12);
+      padding: 4px 12px; border-radius: 20px;
+    }
+
+    /* ════════════════════════════════════════
+       SLIDE 8 – WHY BRAUNGUIDE
+    ════════════════════════════════════════ */
+    .s8 {
+      background: var(--light);
+    }
+    .s8-inner {
+      padding: 48px 28px 32px;
+    }
+    .s8 h2 {
+      font-size: 32px; font-weight: 800;
+      color: var(--dark); letter-spacing: -1px;
+      margin-bottom: 6px; line-height: 1.15;
+    }
+    .s8 .sub {
+      font-size: 14px; color: var(--gray-l);
+      margin-bottom: 28px; line-height: 1.55;
+    }
+    .why-grid {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .why-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-xl);
+      padding: 22px 20px;
+      display: flex; align-items: flex-start; gap: 16px;
+    }
+    .why-ic {
+      width: 46px; height: 46px; border-radius: var(--r-md);
+      background: var(--dark);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      color: var(--white);
+    }
+    .why-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 17px; font-weight: 700; color: var(--dark);
+      margin-bottom: 5px;
+    }
+    .why-desc { font-size: 14px; color: var(--gray); line-height: 1.6; }
+
+    /* ════════════════════════════════════════
+       SLIDE 9 – SOCIAL PROOF
+    ════════════════════════════════════════ */
+    .s9 {
+      background: var(--white);
+      align-items: center; justify-content: center;
+    }
+    .s9-inner {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 48px 28px 32px;
+      min-height: 100dvh;
+      min-height: 100vh;
+    }
+    .s9 .quote-mark {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 80px; line-height: 0.7;
+      color: var(--teal); opacity: 0.2;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .s9 blockquote {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 22px; font-weight: 600;
+      color: var(--dark); line-height: 1.45;
+      margin: 0 auto 28px;
+      letter-spacing: -0.3px;
+    }
+    .s9 blockquote em { color: var(--teal); font-style: normal; }
+    .s9 .attrib {
+      font-size: 14px; color: var(--gray-l);
+      display: flex; align-items: center; justify-content: center;
+      flex-wrap: wrap; gap: 8px; text-align: center;
+    }
+    .s9 .attrib::before, .s9 .attrib::after {
+      content: '';
+      width: 24px; height: 1px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    /* ════════════════════════════════════════
+       SLIDE 10 – CTA
+    ════════════════════════════════════════ */
+    .s10 {
+      background: var(--dark);
+      align-items: center; justify-content: center;
+    }
+    .s10-orb {
+      position: absolute;
+      width: 500px; height: 500px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(13,110,114,0.24) 0%, rgba(13,110,114,0.06) 45%, transparent 65%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: orbFloat 14s ease-in-out infinite;
+    }
+    .s10 > * { position: relative; z-index: 1; }
+
+    .s10-inner {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 48px 28px 32px;
+      min-height: 100dvh;
+      min-height: 100vh;
+    }
+    .s10 .cta-eyebrow {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--teal-l); margin-bottom: 16px;
+    }
+    .s10 h2 {
+      font-size: 52px; font-weight: 800;
+      color: var(--white); line-height: 1.05;
+      letter-spacing: -2px; margin-bottom: 12px;
+    }
+    .s10 h2 em { color: var(--amber); font-style: normal; }
+    .s10 .cta-sub {
+      font-size: 16px; color: rgba(255,255,255,0.45);
+      margin-bottom: 36px; letter-spacing: -0.1px;
+    }
+    .cta-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--r-2xl);
+      padding: 28px 36px;
+      display: inline-flex; flex-direction: column;
+      align-items: center; gap: 8px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      animation: borderGlow 4s ease-in-out infinite;
+      width: 100%;
+      max-width: 320px;
+    }
+    .cta-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px; font-weight: 700; color: var(--white);
+    }
+    .cta-brand {
+      font-size: 13px; color: var(--amber); font-weight: 600;
+    }
+    .cta-links {
+      font-size: 13px; color: rgba(255,255,255,0.4);
+      display: flex; flex-direction: column;
+      align-items: center; gap: 4px;
+      margin-top: 4px;
+    }
+
+    /* ════════════════════════════════════════
+       SLIDE TRANSITION ANIMATION
+    ════════════════════════════════════════ */
+    .slide.slide-exit-left  { animation: slideExitLeft  var(--t-slow) var(--ease-in-out) both; }
+    .slide.slide-exit-right { animation: slideExitRight var(--t-slow) var(--ease-in-out) both; }
+    .slide.slide-enter-left  { animation: slideEnterLeft  var(--t-slow) var(--ease-in-out) both; }
+    .slide.slide-enter-right { animation: slideEnterRight var(--t-slow) var(--ease-in-out) both; }
+
+    @keyframes slideExitLeft {
+      to { opacity: 0; transform: translateX(-40px); }
+    }
+    @keyframes slideExitRight {
+      to { opacity: 0; transform: translateX(40px); }
+    }
+    @keyframes slideEnterLeft {
+      from { opacity: 0; transform: translateX(40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideEnterRight {
+      from { opacity: 0; transform: translateX(-40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- ── 1. TITEL ── -->
+  <div class="slide s1 active" id="slide-0">
+    <div class="s1-orb"></div>
+    <div class="s1-orb-2"></div>
+    <div class="eyebrow anim-headline" style="margin-bottom:18px;">KI-Beratung &amp; Automatisierung für KMU</div>
+    <div class="wordmark anim-headline">Braun<span>Guide</span></div>
+    <div class="claim anim-sub">KI ohne <em>Kauderwelsch.</em></div>
+    <div class="meta anim-meta">
+      <strong>Florian Braunschweig</strong><br>
+      braunguide.ai &nbsp;·&nbsp; [E-Mail] &nbsp;·&nbsp; [Telefon]
+    </div>
+    <div class="swipe-hint anim-meta">
+      <span class="swipe-arrow-l">&#8592;</span>
+      <span>Wischen zum Navigieren</span>
+      <span class="swipe-arrow-r">&#8594;</span>
+    </div>
+  </div>
+
+  <!-- ── 2. PROBLEM ── -->
+  <div class="slide s2" id="slide-1">
+    <div class="s2-inner">
+      <div class="eyebrow anim-headline" style="margin-bottom:20px;">Die Realität in deutschen KMU-Büros</div>
+      <div class="big-stat anim-stat"><span>30%</span></div>
+      <p class="stat-label anim-sub">
+        der Arbeitszeit geht für <strong>repetitive Aufgaben</strong> verloren,
+        die KI heute in Sekunden erledigt.
+      </p>
+      <span class="source anim-meta">Quelle: McKinsey Global Institute, 2024</span>
+    </div>
+  </div>
+
+  <!-- ── 3. LÖSUNG ── -->
+  <div class="slide s3" id="slide-2">
+    <div class="slide-inner">
+      <div class="s3-inner">
+        <div class="eyebrow dark anim-headline" style="margin-bottom:14px;">Was wir tun</div>
+        <h2 class="headline anim-headline">Wir bringen KI in Ihr Büro. <em>Einfach. Persönlich. Wirksam.</em></h2>
+        <p class="sub anim-sub">Keine IT-Abteilung nötig. Kein Vorwissen. Nur messbare Ergebnisse – von Woche eins an.</p>
+        <div class="pills anim-pills">
+          <div class="pill"><span class="dot-teal"></span>Prozesse analysieren</div>
+          <div class="pill"><span class="dot-teal"></span>Lösungen einrichten</div>
+          <div class="pill"><span class="dot-teal"></span>Team einweisen</div>
+          <div class="pill"><span class="dot-teal"></span>Langfristig begleiten</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4. STARTER WORKSHOP ── -->
+  <div class="slide s4" id="slide-3">
+    <div class="slide-inner">
+      <div class="s4-inner">
+        <div class="eyebrow anim-headline" style="margin-bottom:14px;">Einstieg ohne Risiko</div>
+        <h2 class="anim-headline">Noch kein KI-Erlebnis?<br>Perfekt.</h2>
+        <div class="price-line anim-sub">
+          <div class="price">249€</div>
+          <div class="price-desc">· 2 Stunden · vor Ort oder remote</div>
+        </div>
+        <p class="desc-text anim-sub">
+          Der KI Starter Workshop ist der einfachste Weg, um KI in Ihrem Büro erlebbar zu machen – ohne Investitionsrisiko, ohne technisches Vorwissen.
+        </p>
+        <div class="right-panel anim-card">
+          <h3>Was Sie mitnehmen</h3>
+          <ul class="feature-list">
+            <li><div class="chk">✓</div>KI-Tools eingerichtet &amp; direkt nutzbar</li>
+            <li><div class="chk">✓</div>Konkrete Anwendungsfälle für Ihr Unternehmen</li>
+            <li><div class="chk">✓</div>Ihr Team kann KI ab sofort einsetzen</li>
+            <li><div class="chk">✓</div>Klare Empfehlung: Was lohnt sich als nächstes?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 5. PAKETE ── -->
+  <div class="slide s5" id="slide-4">
+    <div class="slide-inner">
+      <div class="s5-inner">
+        <div class="head">
+          <div class="eyebrow dark anim-headline" style="margin-bottom:8px;">Fertige Lösungen</div>
+          <h2 class="anim-headline">Eingerichtet. Getestet. Sofort einsatzbereit.</h2>
+          <p class="sub anim-sub">Setup-Preis einmalig · Monatliche Betreuung inkl. Support &amp; Updates · Alle Preise zzgl. MwSt.</p>
+        </div>
+        <div class="cards-row">
+          <!-- Card 1 -->
+          <div class="pk-card anim-card">
+            <div class="pk-icon">
+              <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.48 2 2 0 0 1 3.6 1.26h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.85a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+            </div>
+            <div class="pk-name">KI-Telefon­assistent</div>
+            <div class="pk-desc">Anrufe entgegennehmen &amp; Termine buchen – rund um die Uhr</div>
+            <div class="pk-setup">790€</div>
+            <div class="pk-mo">+ 89€/Monat</div>
+          </div>
+          <!-- Card 2 -->
+          <div class="pk-card anim-card">
+            <div class="pk-icon">
+              <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <path d="m22 7-10 7L2 7"/>
+              </svg>
+            </div>
+            <div class="pk-name">E-Mail-Automatisierung</div>
+            <div class="pk-desc">Anfragen sortieren, kategorisieren &amp; automatisch beantworten</div>
+            <div class="pk-setup">590€</div>
+            <div class="pk-mo">+ 69€/Monat</div>
+          </div>
+          <!-- Card 3 -->
+          <div class="pk-card anim-card">
+            <div class="pk-icon">
+              <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <path d="M16 2v4M8 2v4M3 10h18"/>
+                <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" stroke-width="2.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="pk-name">Terminplanung</div>
+            <div class="pk-desc">Termine vollautomatisch koordinieren &amp; bestätigen</div>
+            <div class="pk-setup">490€</div>
+            <div class="pk-mo">+ 59€/Monat</div>
+          </div>
+          <!-- Card 4 -->
+          <div class="pk-card anim-card">
+            <div class="pk-icon">
+              <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="8" y1="13" x2="16" y2="13"/>
+                <line x1="8" y1="17" x2="16" y2="17"/>
+                <line x1="8" y1="9" x2="11" y2="9"/>
+              </svg>
+            </div>
+            <div class="pk-name">Dokumenten-Assistent</div>
+            <div class="pk-desc">Dokumente erstellen, verwalten &amp; strukturiert ablegen</div>
+            <div class="pk-setup">690€</div>
+            <div class="pk-mo">+ 79€/Monat</div>
+          </div>
+          <!-- Card 5: Bundle (featured) -->
+          <div class="pk-card featured anim-card">
+            <div class="pk-star">
+              <svg class="icon-svg" width="10" height="10" viewBox="0 0 24 24" style="stroke:var(--amber);fill:var(--amber)">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              Beliebteste Wahl
+            </div>
+            <div class="pk-icon">
+              <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24">
+                <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+                <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+                <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M15 12v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+              </svg>
+            </div>
+            <div class="pk-name">Starter-Bundle</div>
+            <div class="pk-desc">2 Pakete nach Wahl – kombiniert &amp; günstiger</div>
+            <div class="pk-setup">1.290€</div>
+            <div class="pk-mo">+ 139€/Monat</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 6. BERATUNG ── -->
+  <div class="slide s6" id="slide-5">
+    <div class="slide-inner">
+      <div class="s6-inner">
+        <div class="eyebrow dark anim-headline" style="margin-bottom:8px;">Individuelle Beratung</div>
+        <h2 class="anim-headline">Für komplexere Anforderungen.</h2>
+        <p class="sub anim-sub">Wenn Standardpakete nicht reichen – maßgeschneidert nach Ihren Prozessen.</p>
+        <div class="ber-row">
+          <div class="ber-c dark-c anim-card">
+            <div class="bc-label">Einstieg</div>
+            <div class="bc-name">Potential­analyse</div>
+            <div class="bc-desc">60 Minuten – wir zeigen konkret wo KI bei Ihnen den größten Unterschied macht.</div>
+            <div class="bc-price">Kostenlos</div>
+          </div>
+          <div class="ber-c plain anim-card">
+            <div class="bc-label">Workshop</div>
+            <div class="bc-name">KI-Strategie</div>
+            <div class="bc-desc">Halbtag (3h) – Ihre persönliche KI-Roadmap, entwickelt gemeinsam mit Ihnen.</div>
+            <div class="bc-price">490€</div>
+          </div>
+          <div class="ber-c plain anim-card">
+            <div class="bc-label">Projekt</div>
+            <div class="bc-name">Individual­lösung</div>
+            <div class="bc-desc">Komplexe Automatisierungen &amp; Integrationen exakt nach Ihren Anforderungen.</div>
+            <div class="bc-price">Ab 1.500€</div>
+          </div>
+          <div class="ber-c plain anim-card">
+            <div class="bc-label">Laufend</div>
+            <div class="bc-name">Retainer</div>
+            <div class="bc-desc">Ihr fester KI-Ansprechpartner – monatlich, flexibel, immer erreichbar.</div>
+            <div class="bc-price">Ab 299€/Mo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 7. VORGEHEN ── -->
+  <div class="slide s7" id="slide-6">
+    <div class="slide-inner">
+      <div class="s7-inner">
+        <div class="eyebrow anim-headline" style="margin-bottom:12px;">Unser Vorgehen</div>
+        <h2 class="anim-headline">Von Null auf KI in 4 Schritten.</h2>
+        <p class="sub anim-sub">Transparent. Strukturiert. Ohne böse Überraschungen.</p>
+        <div class="timeline-v">
+          <div class="tstep anim-step">
+            <div class="tstep-num">1</div>
+            <div class="tstep-body">
+              <div class="tstep-title">Analyse</div>
+              <div class="tstep-desc">Wir verstehen Ihre Abläufe und zeigen konkret wo KI den größten Hebel hat.</div>
+              <span class="tstep-tag">Kostenlos</span>
+            </div>
+          </div>
+          <div class="tstep anim-step">
+            <div class="tstep-num">2</div>
+            <div class="tstep-body">
+              <div class="tstep-title">Empfehlung</div>
+              <div class="tstep-desc">Klarer Plan mit konkreter Lösung, messbarem Nutzen und transparentem Preis.</div>
+              <span class="tstep-tag">Ca. 1 Woche</span>
+            </div>
+          </div>
+          <div class="tstep anim-step">
+            <div class="tstep-num">3</div>
+            <div class="tstep-body">
+              <div class="tstep-title">Umsetzung</div>
+              <div class="tstep-desc">Wir richten alles ein und schulen Ihr Team. Sie müssen nichts selbst bauen.</div>
+              <span class="tstep-tag">1–2 Wochen</span>
+            </div>
+          </div>
+          <div class="tstep anim-step">
+            <div class="tstep-num">4</div>
+            <div class="tstep-body">
+              <div class="tstep-title">Betreuung</div>
+              <div class="tstep-desc">Wir bleiben langfristig Ihr Ansprechpartner – monatlich oder nach Bedarf.</div>
+              <span class="tstep-tag">Laufend</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 8. WARUM BRAUNGUIDE ── -->
+  <div class="slide s8" id="slide-7">
+    <div class="slide-inner">
+      <div class="s8-inner">
+        <div class="eyebrow dark anim-headline" style="margin-bottom:8px;">Warum BraunGuide</div>
+        <h2 class="anim-headline">KI-Beratung, die wirklich zu KMU passt.</h2>
+        <p class="sub anim-sub">Nicht die größte Agentur – aber die, die wirklich zuhört und liefert.</p>
+        <div class="why-grid">
+          <div class="why-card anim-why">
+            <div class="why-ic">
+              <svg class="icon-svg" width="22" height="22" viewBox="0 0 24 24" style="color:var(--teal-l)">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="why-title">Kein Kauderwelsch</div>
+              <div class="why-desc">Wir reden wie Menschen, nicht wie Maschinen. Verständlich von der ersten Minute an.</div>
+            </div>
+          </div>
+          <div class="why-card anim-why">
+            <div class="why-ic">
+              <svg class="icon-svg" width="22" height="22" viewBox="0 0 24 24" style="color:var(--amber)">
+                <circle cx="12" cy="12" r="10"/>
+                <circle cx="12" cy="12" r="6"/>
+                <circle cx="12" cy="12" r="2"/>
+              </svg>
+            </div>
+            <div>
+              <div class="why-title">Kein Einheitsbrei</div>
+              <div class="why-desc">Jede Lösung wird auf Ihr Unternehmen zugeschnitten. Nicht umgekehrt.</div>
+            </div>
+          </div>
+          <div class="why-card anim-why">
+            <div class="why-ic">
+              <svg class="icon-svg" width="22" height="22" viewBox="0 0 24 24" style="color:var(--teal-l)">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="m9 12 2 2 4-4" stroke-width="1.75"/>
+              </svg>
+            </div>
+            <div>
+              <div class="why-title">Kein Risiko</div>
+              <div class="why-desc">Kostenlose Erstanalyse, transparente Preise, faire Verträge. Keine Überraschungen.</div>
+            </div>
+          </div>
+          <div class="why-card anim-why">
+            <div class="why-ic">
+              <svg class="icon-svg" width="22" height="22" viewBox="0 0 24 24" style="color:var(--amber)">
+                <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+                <path d="M12 5.36 8.87 8.5a2.13 2.13 0 0 0 0 3h0a2.13 2.13 0 0 0 3.02 0L12 11.4l.11.1a2.13 2.13 0 0 0 3.02 0h0a2.13 2.13 0 0 0 0-3L12 5.36z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="why-title">Kein Alleingang</div>
+              <div class="why-desc">Wir richten ein, erklären alles und bleiben dauerhaft als Partner an Ihrer Seite.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 9. SOCIAL PROOF ── -->
+  <div class="slide s9" id="slide-8">
+    <div class="s9-inner">
+      <span class="quote-mark anim-stat">"</span>
+      <blockquote class="anim-headline">
+        „Wir haben nicht gedacht, dass KI schon so einfach sein kann.
+        BraunGuide hat uns in zwei Wochen mehr gebracht
+        als drei Jahre Eigenversuche."
+      </blockquote>
+      <div class="attrib anim-sub">[Vorname N.], Geschäftsführer · [Branche], [Stadt]</div>
+      <div style="margin-top:24px;" class="anim-meta">
+        <span class="tag tag-teal">Platzhalter – wird nach erstem Pilotprojekt befüllt</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 10. CTA ── -->
+  <div class="slide s10" id="slide-9">
+    <div class="s10-orb"></div>
+    <div class="s10-inner">
+      <div class="cta-eyebrow anim-headline">Nächster Schritt</div>
+      <h2 class="anim-headline">Erstgespräch.<br><em>Kostenlos.</em></h2>
+      <p class="cta-sub anim-sub">60 Minuten · Unverbindlich · Sofortiger Mehrwert</p>
+      <div class="cta-card anim-meta">
+        <div class="cta-name">Florian Braunschweig</div>
+        <div class="cta-brand">BraunGuide · KI ohne Kauderwelsch.</div>
+        <div class="cta-links">
+          <span>braunguide.ai</span>
+          <span>[E-Mail]</span>
+          <span>[Telefon]</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- ── NAVIGATION ── -->
+<nav class="nav" id="nav">
+  <button class="btn" id="prev" aria-label="Vorherige Folie">&#8592;</button>
+  <div class="dots" id="dots"></div>
+  <span class="ctr" id="ctr">1/10</span>
+  <button class="btn" id="next" aria-label="Nächste Folie">&#8594;</button>
+</nav>
+
+<script>
+  /* ── State ── */
+  const slides   = document.querySelectorAll('.slide');
+  const dotsEl   = document.getElementById('dots');
+  const ctrEl    = document.getElementById('ctr');
+  const total    = slides.length;
+  let cur        = 0;
+  let isAnimating = false;
+
+  /* ── Build dots ── */
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    d.addEventListener('click', () => go(i));
+    dotsEl.appendChild(d);
+  });
+
+  /* ── Navigate ── */
+  function go(idx, direction) {
+    if (isAnimating || idx === cur) return;
+    if (!direction) direction = idx > cur ? 'forward' : 'back';
+
+    isAnimating = true;
+    const prev  = cur;
+    cur = ((idx % total) + total) % total;
+
+    /* Determine exit/enter directions */
+    const exitClass  = direction === 'forward' ? 'slide-exit-left'  : 'slide-exit-right';
+    const enterClass = direction === 'forward' ? 'slide-enter-left' : 'slide-enter-right';
+
+    /* Outgoing slide */
+    slides[prev].classList.remove('active');
+    slides[prev].classList.add(exitClass);
+
+    /* Incoming slide */
+    slides[cur].style.opacity = '1';
+    slides[cur].style.pointerEvents = 'all';
+    slides[cur].classList.add(enterClass);
+
+    /* Update dots & counter */
+    dotsEl.children[prev].classList.remove('on');
+    dotsEl.children[cur].classList.add('on');
+    ctrEl.textContent = `${cur + 1}/${total}`;
+
+    /* Reset scroll position on incoming slide if it has a scroll container */
+    const inner = slides[cur].querySelector('.slide-inner');
+    if (inner) inner.scrollTop = 0;
+
+    /* Cleanup after animation */
+    const duration = 450;
+    setTimeout(() => {
+      slides[prev].classList.remove(exitClass);
+      slides[prev].style.opacity = '';
+      slides[prev].style.pointerEvents = '';
+
+      slides[cur].classList.remove(enterClass);
+      slides[cur].classList.add('active');
+      isAnimating = false;
+    }, duration);
+  }
+
+  /* ── Button nav ── */
+  document.getElementById('next').addEventListener('click', () => go(cur + 1, 'forward'));
+  document.getElementById('prev').addEventListener('click', () => go(cur - 1, 'back'));
+
+  /* ── Keyboard nav ── */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') go(cur + 1, 'forward');
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                     go(cur - 1, 'back');
+  });
+
+  /* ── Touch / Swipe ── */
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+  let isSwiping = false;
+
+  const deck = document.getElementById('deck');
+
+  deck.addEventListener('touchstart', e => {
+    touchStartX    = e.touches[0].clientX;
+    touchStartY    = e.touches[0].clientY;
+    touchStartTime = Date.now();
+    isSwiping      = false;
+  }, { passive: true });
+
+  deck.addEventListener('touchmove', e => {
+    if (!touchStartX) return;
+    const dx = touchStartX - e.touches[0].clientX;
+    const dy = touchStartY - e.touches[0].clientY;
+
+    /* If scrolling vertically in a scrollable slide, let it scroll */
+    const inner = slides[cur].querySelector('.slide-inner');
+    if (inner && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) {
+      isSwiping = false;
+      return; /* allow default vertical scroll */
+    }
+
+    /* Horizontal swipe intent – prevent default to avoid bounce */
+    if (Math.abs(dx) > 8) {
+      isSwiping = true;
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  deck.addEventListener('touchend', e => {
+    if (!isSwiping) return;
+    const dx       = touchStartX - e.changedTouches[0].clientX;
+    const elapsed  = Date.now() - touchStartTime;
+    const velocity = Math.abs(dx) / elapsed; /* px/ms */
+
+    /* Threshold: 50px OR fast flick (velocity > 0.3px/ms) */
+    if (Math.abs(dx) > 50 || velocity > 0.3) {
+      if (dx > 0) go(cur + 1, 'forward');
+      else        go(cur - 1, 'back');
+    }
+
+    touchStartX = 0;
+    isSwiping   = false;
+  }, { passive: true });
+
+</script>
+</body>
+</html>
